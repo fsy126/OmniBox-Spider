@@ -646,6 +646,14 @@ const shouldBlockSource = (sourceName) => {
 };
 
 /**
+ * 规范化播放地址，将失效的 mv.gzlcl.com 域名替换为可用主站域名
+ */
+const normalizePlayUrl = (url) => {
+  if (!url) return "";
+  return String(url).replace(/^https?:\/\/mv\.gzlcl\.com(?=\/|$)/i, jpConfig.host);
+};
+
+/**
  * 将旧格式的播放源转换为新格式(vod_play_sources)
  * @param {Array} sourceListSource - 原始播放源列表
  * @param {string} vodId - 视频ID
@@ -669,7 +677,7 @@ function convertToPlaySources(sourceListSource, vodId, vodName = "") {
       const episodes = source.source_list.map((item, index) => {
         const episodeName = item.source_name || `第${index + 1}集`;
         const fid = `${vodId}#${source.name || "线路"}#${index}`;
-        const safeUrl = encodeURIComponent(item.url || "");
+        const safeUrl = encodeURIComponent(normalizePlayUrl(item.url || ""));
         const playId = `${safeUrl}|||${encodeMeta({ sid: vodId, fid, v: vodName || "", e: episodeName })}`;
         return {
           name: episodeName,
@@ -879,6 +887,8 @@ const handlePlay = async (playId, vodId = "", context = {}) => {
     } catch (error) {
       logInfo(`playId 解码失败，按原值继续: ${error.message}`);
     }
+
+    rawPlayId = normalizePlayUrl(rawPlayId);
 
     const videoIdForScrape = vodId ? String(vodId).replace('@netflix', '') : (playMeta?.sid ? String(playMeta.sid) : "");
 
